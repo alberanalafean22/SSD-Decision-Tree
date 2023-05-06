@@ -1,0 +1,96 @@
+---
+title: "Decision Tree"
+author: "Alber Analafean"
+date: "2023-05-06"
+output: html_document
+---
+# 1.Pengantar dataset (respons, variabel prediktor, jumlah observasi, dan jumlah prediktor
+```{r}
+#mengunakan data Immunotherapy berbentuk csv
+data <- read.csv("Immunotherapy.csv")
+data
+```
+```{r}
+#Respon : Time
+#Prediktor : Semua variabel kecuali Time
+nrow(data) #jumlah observasi: 90
+ncol(data)-1 #jumlah prediktor: 7
+```
+# 2&3.Uraikan pertanyaan ingin dijawab dan lakukan pembersihan data (jika terdapat missing value)
+```{r}
+#cek missing value
+sum(is.na(data)) #tidak terdapat missing value
+```
+```{r}
+data("data")
+str(data)
+attach(data)
+```
+
+```{r}
+#split data
+set.seed(145)
+train <- sample(1:nrow(data), .6*nrow(data))
+data.train = data[train, ]
+data.test = data[-train, ]
+```
+
+```{r}
+#model regression tree-nya
+library(tree)
+tree.data = tree(Time~ ., data = data.train)
+summary(tree.data)
+#visualisasi tree
+plot(tree.data,col="blue")
+text(tree.data,pretty = 0, cex=1, col="steelblue4")
+```
+```{r}
+#ggplot tree
+library(ggplot2)
+library(ggdendro)
+tree_data <- dendro_data(tree.data)
+ggplot() +
+geom_segment(data = tree_data$segments,
+  aes(x = x, y = y, xend = xend, yend = yend), , col="gold4") +
+geom_text(data = subset(tree_data$labels, !is.na(label)),
+  aes(x = x, y = y, label = label), size = 4, vjust = -0.5, col="steelblue4") +
+geom_text(data = subset(tree_data$labels, is.na(label)),
+  aes(x = x, y = y, label = label), size = 4, vjust = 1.5)
+```
+```{r}
+#membangun model random forest dengan 5 variabel acak(mtry) dengan 250 pohon keputusan dibangun 
+library(randomForest)
+set.seed(145)
+bag.data = randomForest(Time ~ ., data = data.train, mtry =5, ntree =250, importance = TRUE)
+bag.data
+```
+
+```{r}
+#Melakukan model random forest
+set.seed(145)
+rf.data = randomForest(Time ~ ., data = data.train, mtry = 3, ntree = 500, importance = TRUE)
+rf.data
+```
+
+#4. Analisis Deskriptif Awal
+```{r}
+summary(data)
+```
+
+
+
+#5.Pilihan model - kesalahan uji (test error)/ validasi silang (cross validation): MSE
+```{r}
+#MSE regression tree
+pred.data <- predict(tree.data, data.test)
+MSETR <- mean((data.test$Area - pred.data)^2)
+paste("Test MSE of tree model = ", MSETR)
+```
+```{r}
+#MSE random forest
+rf.pred = predict(rf.data, data.test)
+MSERF <- mean((data.test$Area - rf.pred)^2)
+paste("Test MSE of randomForest model = ", MSERF)
+```
+# 6. Kesimpulan dan diskusi (merujuk dari pertanyaan yang ingin dijawab pada soal nomor 2)
+Sehingga bisa kita simpulkan didapatkan hasil decision tree, dan telah dilakukan cek MSE pada kedua model decision tree, dari nilai MSE model randomForest sangat lebih baik daripada regression tree karena error lebih kecil dibandingkan dengan pada model regression tree. Dari model tersebut didapatkan keputusan yang bisa digunakan pada analisi yang dilakukan
